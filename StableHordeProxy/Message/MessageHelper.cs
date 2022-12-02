@@ -10,7 +10,7 @@ public class MessageHelper
 
     public static Message CreateImageMessage(string id, string imageUrl)
     {
-        var msg = new MessageBuilder("image")
+        Message msg = new MessageBuilder("image")
             .AddArgument(id)
             .AddArgument(imageUrl)
             .Build();

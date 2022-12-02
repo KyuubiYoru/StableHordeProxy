@@ -2,10 +2,10 @@
 
 public class ModelHelper
 {
-    public List<Model> AvailableModels { get; set; }
-
     public ModelHelper()
     {
         AvailableModels = new List<Model>();
     }
+
+    public List<Model> AvailableModels { get; set; }
 }

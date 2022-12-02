@@ -25,7 +25,7 @@ public class Message
     /// <returns>The command and arguments</returns>
     public static Message Parse(string message)
     {
-        var split = message.Trim()
+        string[] split = message.Trim()
             .Split(',')
             .Select(s => Uri.UnescapeDataString(s))
             .ToArray();
@@ -37,8 +37,8 @@ public class Message
 
     public string Serialize()
     {
-        var elems = Enumerable.Repeat(Command, 1).Concat(Arguments);
-        var elemsEncoded = elems.Select(s => Uri.EscapeDataString(s));
+        IEnumerable<string> elems = Enumerable.Repeat(Command, 1).Concat(Arguments);
+        IEnumerable<string> elemsEncoded = elems.Select(s => Uri.EscapeDataString(s));
         return string.Join(",", elemsEncoded);
     }
 }

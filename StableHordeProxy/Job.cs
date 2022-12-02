@@ -8,8 +8,11 @@ namespace StableHordeProxy;
 public class Job
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
-    private Server _server;
-    private Config _config;
+    private readonly Config _config;
+    private readonly Server _server;
+
+
+    private int _requestRetryCount;
 
     public Job(Server server, IWebSocketConnection client, Config config, string[] args)
     {
@@ -23,9 +26,9 @@ public class Job
         Status = JobStatus.Running;
     }
 
-    public List<string> RunningIds { get; set; } = new List<string>();
-    public List<string> ReadyIds { get; set; } = new List<string>();
-    public List<string> FinishedIds { get; set; } = new List<string>();
+    public List<string> RunningIds { get; set; } = new();
+    public List<string> ReadyIds { get; set; } = new();
+    public List<string> FinishedIds { get; set; } = new();
 
 
     public GenerationData GenerationData { get; set; }
@@ -39,9 +42,6 @@ public class Job
 
     public int FinishedImages { get; set; }
     public JobStatus Status { get; set; }
-
-
-    private int _requestRetryCount = 0;
 
     public async Task Run()
     {
@@ -69,7 +69,6 @@ public class Job
         neededImages = neededImages > limit ? limit : neededImages;
 
         for (int i = 0; i < neededImages; i++)
-        {
             try
             {
                 string? id = await _server.RequestManager.StartImageJobAsync(this).WaitAsync(CancellationToken.None);
@@ -93,16 +92,14 @@ public class Job
             {
                 Log.Error($"{e.Message} | {e.StackTrace}");
             }
-        }
     }
 
     public async Task CheckStatus()
     {
         foreach (string id in RunningIds.ToArray())
-        {
             try
             {
-                var status = await _server.RequestManager.GetImageStatusAsync(id);
+                JobStatus status = await _server.RequestManager.GetImageStatusAsync(id);
                 if (status == JobStatus.Finished)
                 {
                     FinishedIds.Add(id);
@@ -114,7 +111,6 @@ public class Job
             {
                 Log.Error($"{e.Message} | {e.StackTrace}");
             }
-        }
     }
 
     public async Task GetImages()
@@ -126,10 +122,7 @@ public class Job
                 (List<string>?, JobStatus) images = await _server.RequestManager.GetImagesAsync(id);
                 if (images.Item2 == JobStatus.Finished)
                 {
-                    foreach (var url in images.Item1)
-                    {
-                        ImagesToSend.Add((id, url));
-                    }
+                    foreach (string url in images.Item1) ImagesToSend.Add((id, url));
 
                     FinishedIds.Remove(id);
                 }

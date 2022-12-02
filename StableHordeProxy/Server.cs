@@ -8,14 +8,14 @@ public class Server
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     private readonly Commands _commands;
+    private readonly Config _config;
 
     //WeakReference list of all connected clients who requested debug logs
     private readonly List<WeakReference<IWebSocketConnection>> _debugClients = new();
     private readonly HttpServer _httpServer;
-    private readonly WsServer _wsServer;
-    private readonly Config _config;
 
     private readonly HashSet<Job> _waitingJobs = new();
+    private readonly WsServer _wsServer;
 
     public Server()
     {
@@ -25,7 +25,7 @@ public class Server
         _httpServer = new HttpServer(_config);
         _wsServer = new WsServer(_config, _commands);
         RequestManager = new RequestManager(_config);
-        
+
 
         EventLogTarget.LogEvent += LogEvent;
     }
@@ -35,10 +35,8 @@ public class Server
     private void LogEvent(object sender, string e)
     {
         //Send log to all clients who requested debug logs
-        foreach (var client in _debugClients)
-        {
-            if (client.TryGetTarget(out var target))
-            {
+        foreach (WeakReference<IWebSocketConnection> client in _debugClients)
+            if (client.TryGetTarget(out IWebSocketConnection? target))
                 try
                 {
                     if (!target.IsAvailable) continue;
@@ -47,13 +45,9 @@ public class Server
                 }
                 catch (Exception exception)
                 {
-
                 }
-                
-            }
-        }
     }
-    
+
 
     public void Start()
     {
@@ -74,36 +68,30 @@ public class Server
                 if (job == null) return;
 
                 if (job.Status == JobStatus.Running)
-                {
                     try
                     {
                         lock (this)
                         {
                             _waitingJobs.Remove(job);
                         }
-                        
+
                         await job.Run();
 
                         if (job.Status == JobStatus.Running)
-                        {
                             lock (this)
                             {
                                 _waitingJobs.Add(job);
                             }
-                        }
                     }
                     catch (Exception e)
                     {
                         Log.Error(e, "Error while running job");
                     }
-                }
                 else
-                {
                     lock (this)
                     {
                         _waitingJobs.Remove(job);
                     }
-                }
             });
 
             //Wait 1 second
@@ -124,14 +112,14 @@ public class Server
         Job job = new Job(this, client, _config, args);
         _waitingJobs.Add(job);
 
-        Log.Info($"Job started");
+        Log.Info("Job started");
     }
 
     public void DebugCommand(IWebSocketConnection client)
     {
-        if (_debugClients.Any(x => x.TryGetTarget(out var target) && target == client))
+        if (_debugClients.Any(x => x.TryGetTarget(out IWebSocketConnection? target) && target == client))
         {
-            _debugClients.RemoveAll(x => x.TryGetTarget(out var target) && target == client);
+            _debugClients.RemoveAll(x => x.TryGetTarget(out IWebSocketConnection? target) && target == client);
             //Remaining clients
             Log.Info($"Remaining debug clients: {_debugClients.Count}");
         }

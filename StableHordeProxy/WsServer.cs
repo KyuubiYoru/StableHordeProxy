@@ -12,9 +12,6 @@ public class WsServer
 
     private readonly WebSocketServer _server;
 
-    //Event that is fired when a client disconnects
-    public static event EventHandler<IWebSocketConnection>? ClientDisconnected;
-
 
     public WsServer(Config config, Commands commands)
     {
@@ -22,6 +19,9 @@ public class WsServer
         _commands = commands;
         _server = new WebSocketServer($"http://{_config.WebSocketConfig.Address}:{_config.WebSocketConfig.Port}");
     }
+
+    //Event that is fired when a client disconnects
+    public static event EventHandler<IWebSocketConnection>? ClientDisconnected;
 
     public void Start()
     {
@@ -40,7 +40,7 @@ public class WsServer
             };
             socket.OnMessage = messageText =>
             {
-                var message = Message.Message.Parse(messageText);
+                Message.Message message = Message.Message.Parse(messageText);
                 try
                 {
                     string? response = _commands.TryExecuteCommand(
@@ -61,10 +61,7 @@ public class WsServer
             while (true)
             {
                 await Task.Delay(5000);
-                foreach (var client in _clients.ToArray())
-                {
-                    client.Send("ping");
-                }
+                foreach (IWebSocketConnection client in _clients.ToArray()) client.Send("ping");
             }
         });
 
@@ -73,7 +70,7 @@ public class WsServer
 
     public void SendMessageToAll(Message.Message message)
     {
-        foreach (var client in _clients)
+        foreach (IWebSocketConnection client in _clients)
             client.Send(message.Serialize());
     }
 }

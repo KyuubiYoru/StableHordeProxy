@@ -19,16 +19,13 @@ public class Config
         }
         else
         {
-            var json = File.ReadAllText(FilePath);
+            string json = File.ReadAllText(FilePath);
             JObject jObject = JObject.Parse(json);
             HttpConfig = jObject["HttpConfig"].ToObject<HttpConfig>();
             WebSocketConfig = jObject["WebSocketConfig"].ToObject<WebSocketConfig>();
             StableHordeConfig = jObject["StableHordeConfig"].ToObject<StableHordeConfig>();
 
-            if (string.IsNullOrWhiteSpace(StableHordeConfig.ApiKey))
-            {
-                StableHordeConfig.ApiKey = "0000000000";
-            }
+            if (string.IsNullOrWhiteSpace(StableHordeConfig.ApiKey)) StableHordeConfig.ApiKey = "0000000000";
         }
     }
 
@@ -39,7 +36,7 @@ public class Config
 
     public void Save()
     {
-        var json = JsonConvert.SerializeObject(this, Formatting.Indented);
+        string json = JsonConvert.SerializeObject(this, Formatting.Indented);
         File.WriteAllText(FilePath, json);
     }
 }

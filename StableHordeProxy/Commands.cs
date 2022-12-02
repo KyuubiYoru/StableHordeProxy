@@ -38,16 +38,15 @@ public class Commands
         //     return null;
         // }
 
-        var enumerator = callback.GetType()
+        IEnumerable<(int i, Type type)> enumerator = callback.GetType()
             .GetGenericArguments()
             .SkipLast(0)
             .Select((type, i) => (i, type));
 
-        var invokeArgs = new List<object>();
+        List<object> invokeArgs = new List<object>();
 
 
-        foreach (var (i, argType) in enumerator)
-        {
+        foreach ((int i, Type argType) in enumerator)
             // special handling, if argument is string array, pass all raw
             // arguments to it
             if (argType == typeof(string[]))
@@ -60,7 +59,6 @@ public class Commands
                 invokeArgs.Add(client);
             else
                 throw new NotSupportedException();
-        }
 
         string? response = null;
         try
@@ -71,7 +69,7 @@ public class Commands
         {
             Log.Error(ex);
         }
-        
+
         return response;
     }
 
