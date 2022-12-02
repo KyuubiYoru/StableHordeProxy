@@ -7,7 +7,7 @@ using RestSharp;
 
 namespace StableHordeProxy.Api;
 
-public class RequestManager
+public class RequestHelper
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     private readonly RestClient _client;
@@ -15,7 +15,7 @@ public class RequestManager
     private readonly Config _config;
 
 
-    public RequestManager(Config config)
+    public RequestHelper(Config config)
     {
         _config = config;
         _client = new RestClient("https://stablehorde.net/");
@@ -58,15 +58,12 @@ public class RequestManager
     }
 
 
-    private static string CalculateMd5Hash(byte[] inputBytes)
+    private static string CalculateHash(byte[] inputBytes)
     {
-        // step 1, calculate MD5 hash from input
-        MD5 md5 = MD5.Create();
-        byte[] hash = md5.ComputeHash(inputBytes);
-
-        // step 2, convert byte array to hex string
+        using SHA256 sha256 = SHA256.Create();
+        byte[] hashBytes = sha256.ComputeHash(inputBytes);
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < hash.Length; i++) sb.Append(hash[i].ToString("X2"));
+        foreach (byte b in hashBytes) sb.Append(b.ToString("X2"));
 
         return sb.ToString();
     }
@@ -124,12 +121,13 @@ public class RequestManager
             List<string> images = new List<string>();
 
             foreach (JsonNode? generation in generations)
+            {
                 try
                 {
                     string base64Image = generation["img"].ToString();
                     byte[] imageBytes = Convert.FromBase64String(base64Image);
 
-                    string hash = CalculateMd5Hash(imageBytes);
+                    string hash = CalculateHash(imageBytes);
                     string filename = $"{hash}.webp";
                     await File.WriteAllBytesAsync(_config.HttpConfig.DataPath + "\\" + filename, imageBytes);
                     Log.Debug($"Saved image {filename}");
@@ -142,8 +140,39 @@ public class RequestManager
                 {
                     Log.Error($"{e.Message} | {e.StackTrace}");
                 }
+            }
         }
 
         return (null, JobStatus.Running);
+    }
+
+    public async Task<List<(string, int)>?> GetAvailableModels()
+    {
+        RestRequest request = new RestRequest("/api/v2/status/models");
+
+        RestResponse response = await _client.ExecuteAsync(request);
+
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            Log.Error($"Status request failed with status code {response.StatusCode}");
+            return null;
+        }
+
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var models = JsonNode.Parse(response.Content);
+            List<(string, int)>? modelList = new List<(string, int)>();
+
+            foreach (var model in models.AsArray())
+            {
+                var modelName = model["name"].ToString();
+                var modelCount = model["count"].GetValue<int>();
+                modelList.Add((modelName, modelCount));
+            }
+
+            return modelList;
+        }
+
+        return null;
     }
 }

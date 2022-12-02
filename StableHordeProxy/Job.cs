@@ -69,9 +69,10 @@ public class Job
         neededImages = neededImages > limit ? limit : neededImages;
 
         for (int i = 0; i < neededImages; i++)
+        {
             try
             {
-                string? id = await _server.RequestManager.StartImageJobAsync(this).WaitAsync(CancellationToken.None);
+                string? id = await _server.RequestHelper.StartImageJobAsync(this).WaitAsync(CancellationToken.None);
                 if (id != null)
                 {
                     RunningIds.Add(id);
@@ -92,14 +93,16 @@ public class Job
             {
                 Log.Error($"{e.Message} | {e.StackTrace}");
             }
+        }
     }
 
     public async Task CheckStatus()
     {
         foreach (string id in RunningIds.ToArray())
+        {
             try
             {
-                JobStatus status = await _server.RequestManager.GetImageStatusAsync(id);
+                JobStatus status = await _server.RequestHelper.GetImageStatusAsync(id);
                 if (status == JobStatus.Finished)
                 {
                     FinishedIds.Add(id);
@@ -111,6 +114,7 @@ public class Job
             {
                 Log.Error($"{e.Message} | {e.StackTrace}");
             }
+        }
     }
 
     public async Task GetImages()
@@ -119,7 +123,7 @@ public class Job
         {
             foreach (string id in FinishedIds.ToArray())
             {
-                (List<string>?, JobStatus) images = await _server.RequestManager.GetImagesAsync(id);
+                (List<string>?, JobStatus) images = await _server.RequestHelper.GetImagesAsync(id);
                 if (images.Item2 == JobStatus.Finished)
                 {
                     foreach (string url in images.Item1) ImagesToSend.Add((id, url));

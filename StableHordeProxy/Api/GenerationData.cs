@@ -13,17 +13,19 @@ public class GenerationData
         ApiData.Add("apikey", config?.StableHordeConfig.ApiKey ?? "0000000000");
 
         for (int i = 0; i < args.Length; i += 2)
+        {
             if (args.Length > i + 1)
             {
                 if (ApiData.ContainsKey(args[i]))
                     //Convert to type of value in dictionary
-                    ApiData[args[i]] = Convert.ChangeType(args[i + 1], ApiData[args[i]].GetType());
+                    ApiData[args[i]] = Convert.ChangeType((object?)args[i + 1], (Type)ApiData[args[i]].GetType());
                 else if (ImageParams.ContainsKey(args[i]))
                     //Convert to type of value in dictionary
-                    ImageParams[args[i]] = Convert.ChangeType(args[i + 1], ImageParams[args[i]].GetType());
+                    ImageParams[args[i]] = Convert.ChangeType((object?)args[i + 1], (Type)ImageParams[args[i]].GetType());
                 else
                     Log.Warn($"Unknown parameter: {args[i]}");
             }
+        }
     }
 
     public GenerationData()
@@ -39,17 +41,21 @@ public class GenerationData
     {
         JObject requestJson = new JObject();
         foreach (KeyValuePair<string, dynamic> data in ApiData)
+        {
             if (data.Key == "models")
                 requestJson.Add(data.Key, new JArray(data.Value));
             else
                 requestJson.Add(data.Key, data.Value);
+        }
 
         JObject parameters = new JObject();
         foreach (KeyValuePair<string, dynamic> parameter in ImageParams)
+        {
             if (parameter.Key == "models")
                 parameters.Add(parameter.Key, new JArray(parameter.Value));
             else
                 parameters.Add(parameter.Key, parameter.Value);
+        }
 
         requestJson.Add("params", parameters);
 

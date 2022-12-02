@@ -1,6 +1,8 @@
 ﻿using Fleck;
 using NLog;
 using StableHordeProxy.Api;
+using StableHordeProxy.Api.Model;
+using StableHordeProxy.Message;
 
 namespace StableHordeProxy;
 
@@ -10,9 +12,11 @@ public class Server
     private readonly Commands _commands;
     private readonly Config _config;
 
-    //WeakReference list of all connected clients who requested debug logs
-    private readonly List<WeakReference<IWebSocketConnection>> _debugClients = new();
+    private readonly HashSet<IWebSocketConnection> _debugClients = new();
+
     private readonly HttpServer _httpServer;
+    private readonly HashSet<IWebSocketConnection> _modelClients = new();
+    private readonly ModelHelper _modelHelper;
 
     private readonly HashSet<Job> _waitingJobs = new();
     private readonly WsServer _wsServer;
@@ -24,28 +28,33 @@ public class Server
         RegisterCommands();
         _httpServer = new HttpServer(_config);
         _wsServer = new WsServer(_config, _commands);
-        RequestManager = new RequestManager(_config);
+        RequestHelper = new RequestHelper(_config);
+        _modelHelper = new ModelHelper(this, _config);
+        _modelHelper.OnModelUpdate += ModelHelperOnOnModelUpdate;
+        _modelHelper.OnModelRemove += ModelHelperOnOnModelRemove;
 
 
         EventLogTarget.LogEvent += LogEvent;
     }
 
-    public RequestManager RequestManager { get; }
+    public RequestHelper RequestHelper { get; }
 
-    private void LogEvent(object sender, string e)
+    private void LogEvent(object sender, string message)
     {
         //Send log to all clients who requested debug logs
-        foreach (WeakReference<IWebSocketConnection> client in _debugClients)
-            if (client.TryGetTarget(out IWebSocketConnection? target))
-                try
-                {
-                    if (!target.IsAvailable) continue;
+        foreach (IWebSocketConnection client in _debugClients)
+        {
+            try
+            {
+                if (!client.IsAvailable) continue;
 
-                    target.Send(new Message.Message("debug", e).Serialize());
-                }
-                catch (Exception exception)
-                {
-                }
+                client.Send(new Message.Message("debug", message).Serialize());
+            }
+            catch (Exception e)
+            {
+                Log.Error($"{e.Message} {e.StackTrace}");
+            }
+        }
     }
 
 
@@ -68,30 +77,29 @@ public class Server
                 if (job == null) return;
 
                 if (job.Status == JobStatus.Running)
+                {
                     try
                     {
-                        lock (this)
-                        {
-                            _waitingJobs.Remove(job);
-                        }
+                        lock (this) _waitingJobs.Remove(job);
 
                         await job.Run();
 
                         if (job.Status == JobStatus.Running)
+                        {
                             lock (this)
-                            {
                                 _waitingJobs.Add(job);
-                            }
+                        }
                     }
                     catch (Exception e)
                     {
                         Log.Error(e, "Error while running job");
                     }
+                }
                 else
+                {
                     lock (this)
-                    {
                         _waitingJobs.Remove(job);
-                    }
+                }
             });
 
             //Wait 1 second
@@ -101,9 +109,9 @@ public class Server
 
     private void RegisterCommands()
     {
-        // _commands.RegisterCommand("test", TestCommand);
         _commands.RegisterCommand("startJob", StartJobCommand);
         _commands.RegisterCommand("debug", DebugCommand);
+        _commands.RegisterCommand("model", ModelCommand);
     }
 
 
@@ -117,16 +125,53 @@ public class Server
 
     public void DebugCommand(IWebSocketConnection client)
     {
-        if (_debugClients.Any(x => x.TryGetTarget(out IWebSocketConnection? target) && target == client))
-        {
-            _debugClients.RemoveAll(x => x.TryGetTarget(out IWebSocketConnection? target) && target == client);
-            //Remaining clients
-            Log.Info($"Remaining debug clients: {_debugClients.Count}");
-        }
+        if (_debugClients.Contains(client))
+            _debugClients.Remove(client);
+        else
+            _debugClients.Add(client);
+    }
+
+    public void ModelCommand(IWebSocketConnection client)
+    {
+        if (_modelClients.Contains(client))
+            _modelClients.Remove(client);
         else
         {
-            _debugClients.Add(new WeakReference<IWebSocketConnection>(client));
-            Log.Info("Debug command called, added client");
+            _modelClients.Add(client);
+        }
+    }
+    
+    private void ModelHelperOnOnModelUpdate(object sender, Model model)
+    {
+        foreach (IWebSocketConnection client in _modelClients)
+        {
+            try
+            {
+                if (!client.IsAvailable) continue;
+
+                client.Send(MessageHelper.CreateModelMessage(model).Serialize());
+            }
+            catch (Exception exception)
+            {
+                Log.Error($"{exception.Message} {exception.StackTrace}");
+            }
+        }
+    }
+    
+    private void ModelHelperOnOnModelRemove(object sender, Model model)
+    {
+        foreach (IWebSocketConnection client in _modelClients)
+        {
+            try
+            {
+                if (!client.IsAvailable) continue;
+
+                client.Send(MessageHelper.CreateModelMessage(model).Serialize());
+            }
+            catch (Exception exception)
+            {
+                Log.Error($"{exception.Message} {exception.StackTrace}");
+            }
         }
     }
 }

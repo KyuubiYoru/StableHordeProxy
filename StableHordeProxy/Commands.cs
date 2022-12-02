@@ -49,6 +49,7 @@ public class Commands
         foreach ((int i, Type argType) in enumerator)
             // special handling, if argument is string array, pass all raw
             // arguments to it
+        {
             if (argType == typeof(string[]))
                 invokeArgs.Add(args);
             else if (argType == typeof(string))
@@ -59,6 +60,7 @@ public class Commands
                 invokeArgs.Add(client);
             else
                 throw new NotSupportedException();
+        }
 
         string? response = null;
         try
