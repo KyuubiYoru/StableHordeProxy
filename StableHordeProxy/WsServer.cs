@@ -47,7 +47,9 @@ public class WsServer
                         socket,
                         message.Command, message.Arguments);
                     if (response != null)
+                    {
                         socket.Send(response);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -71,6 +73,8 @@ public class WsServer
     public void SendMessageToAll(Message.Message message)
     {
         foreach (IWebSocketConnection client in _clients)
+        {
             client.Send(message.Serialize());
+        }
     }
 }

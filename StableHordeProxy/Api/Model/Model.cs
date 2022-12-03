@@ -26,6 +26,8 @@ public class Model : IComparable<Model>
 
     public int AvailableWorkers { get; set; } = 0;
 
+    public int SortIndex { get; set; } = 0;
+
     public int CompareTo(Model? other)
     {
         if (other == null) return 1;

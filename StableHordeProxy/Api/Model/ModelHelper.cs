@@ -20,13 +20,21 @@ public class ModelHelper
         UpdateModels().WaitAsync(CancellationToken.None);
         UpdateAvailableModels().WaitAsync(CancellationToken.None);
 
+        //Run UpdateAvailableModels() every 1 minutes and UpdateModels() every 15 minutes
+        Task.Run(async () =>
+        {
+            while (true)
+            {
+                await Task.Delay(1 * 60 * 1000);
+                await UpdateAvailableModels();
+            }
+        });
         Task.Run(async () =>
         {
             while (true)
             {
                 await Task.Delay(15 * 60 * 1000);
                 await UpdateModels();
-                await UpdateAvailableModels();
             }
         });
     }
@@ -38,7 +46,12 @@ public class ModelHelper
     {
         JObject jsonObject;
         if (File.Exists("db.json") && File.GetLastWriteTime("db.json").AddHours(1) > DateTime.Now)
+        {
+            //Only update if Models Dictionary is empty
+            if (Models.Count != 0) return;
+
             jsonObject = JObject.Parse(File.ReadAllText("db.json"));
+        }
         else
         {
             try
@@ -72,6 +85,9 @@ public class ModelHelper
             models.Add(keyValuePair.Key, model);
         }
 
+        var sorted = models.OrderBy(x => x.Key).ToList();
+        for (int i = 0; i < sorted.Count; i++) models[sorted[i].Key].SortIndex = i;
+
         Models = models;
     }
 
@@ -102,7 +118,9 @@ public class ModelHelper
             foreach (KeyValuePair<string, Model> model in AvailableModels.ToArray())
             {
                 if (!availableModels.ContainsKey(model.Key))
+                {
                     OnModelRemove?.Invoke(this, model.Value);
+                }
             }
 
             foreach (KeyValuePair<string, Model> model in availableModels)

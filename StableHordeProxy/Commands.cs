@@ -51,15 +51,25 @@ public class Commands
             // arguments to it
         {
             if (argType == typeof(string[]))
+            {
                 invokeArgs.Add(args);
+            }
             else if (argType == typeof(string))
+            {
                 invokeArgs.Add(args[i]);
+            }
             else if (argType == typeof(int))
+            {
                 invokeArgs.Add(int.Parse(args[i]));
+            }
             else if (argType == typeof(IWebSocketConnection))
+            {
                 invokeArgs.Add(client);
+            }
             else
+            {
                 throw new NotSupportedException();
+            }
         }
 
         string? response = null;

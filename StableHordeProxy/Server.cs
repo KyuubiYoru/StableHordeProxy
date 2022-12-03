@@ -87,7 +87,9 @@ public class Server
                         if (job.Status == JobStatus.Running)
                         {
                             lock (this)
+                            {
                                 _waitingJobs.Add(job);
+                            }
                         }
                     }
                     catch (Exception e)
@@ -98,11 +100,11 @@ public class Server
                 else
                 {
                     lock (this)
+                    {
                         _waitingJobs.Remove(job);
+                    }
                 }
             });
-
-            //Wait 1 second
             await Task.Delay(2000);
         }
     }
@@ -126,21 +128,27 @@ public class Server
     public void DebugCommand(IWebSocketConnection client)
     {
         if (_debugClients.Contains(client))
+        {
             _debugClients.Remove(client);
+        }
         else
+        {
             _debugClients.Add(client);
+        }
     }
 
     public void ModelCommand(IWebSocketConnection client)
     {
         if (_modelClients.Contains(client))
+        {
             _modelClients.Remove(client);
+        }
         else
         {
             _modelClients.Add(client);
         }
     }
-    
+
     private void ModelHelperOnOnModelUpdate(object sender, Model model)
     {
         foreach (IWebSocketConnection client in _modelClients)
@@ -149,7 +157,7 @@ public class Server
             {
                 if (!client.IsAvailable) continue;
 
-                client.Send(MessageHelper.CreateModelMessage(model).Serialize());
+                client.Send(MessageUtils.CreateModelMessage(model).Serialize());
             }
             catch (Exception exception)
             {
@@ -157,7 +165,7 @@ public class Server
             }
         }
     }
-    
+
     private void ModelHelperOnOnModelRemove(object sender, Model model)
     {
         foreach (IWebSocketConnection client in _modelClients)
@@ -166,7 +174,7 @@ public class Server
             {
                 if (!client.IsAvailable) continue;
 
-                client.Send(MessageHelper.CreateModelMessage(model).Serialize());
+                client.Send(MessageUtils.CreateModelRemoveMessage(model).Serialize());
             }
             catch (Exception exception)
             {

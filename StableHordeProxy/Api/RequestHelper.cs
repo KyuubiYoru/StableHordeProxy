@@ -60,8 +60,8 @@ public class RequestHelper
 
     private static string CalculateHash(byte[] inputBytes)
     {
-        using SHA256 sha256 = SHA256.Create();
-        byte[] hashBytes = sha256.ComputeHash(inputBytes);
+        using SHA1 sha1 = SHA1.Create();
+        byte[] hashBytes = sha1.ComputeHash(inputBytes);
         StringBuilder sb = new StringBuilder();
         foreach (byte b in hashBytes) sb.Append(b.ToString("X2"));
 
@@ -129,6 +129,8 @@ public class RequestHelper
 
                     string hash = CalculateHash(imageBytes);
                     string filename = $"{hash}.webp";
+                    if (!Directory.Exists(_config.HttpConfig.DataPath)) Directory.CreateDirectory(_config.HttpConfig.DataPath);
+
                     await File.WriteAllBytesAsync(_config.HttpConfig.DataPath + "\\" + filename, imageBytes);
                     Log.Debug($"Saved image {filename}");
 
