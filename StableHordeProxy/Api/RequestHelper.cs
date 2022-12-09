@@ -86,7 +86,7 @@ public class RequestHelper
         try
         {
             bool done = checkResponse.Content != null && JsonNode.Parse(checkResponse.Content)["done"].GetValue<bool>();
-            Log.Info(checkResponse.Content);
+            //Log.Info(checkResponse.Content);
             if (done) return JobStatus.Finished;
         }
         catch (Exception e)
@@ -130,8 +130,11 @@ public class RequestHelper
                     string hash = CalculateHash(imageBytes);
                     string filename = $"{hash}.webp";
                     if (!Directory.Exists(_config.HttpConfig.DataPath)) Directory.CreateDirectory(_config.HttpConfig.DataPath);
-
-                    await File.WriteAllBytesAsync(_config.HttpConfig.DataPath + "\\" + filename, imageBytes);
+                    
+                    string filePath = Path.Combine(Environment.CurrentDirectory, _config.HttpConfig.DataPath, filename);
+                    
+                    //Log.Info($"Starting to write file {filePath}");
+                    await File.WriteAllBytesAsync(filePath, imageBytes);
                     Log.Debug($"Saved image {filename}");
 
                     string imageUrl = _config.HttpConfig.Url + filename;
@@ -156,7 +159,7 @@ public class RequestHelper
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            Log.Error($"Status request failed with status code {response.StatusCode}");
+            Log.Error($"Model request failed with status code {response.StatusCode}");
             return null;
         }
 
@@ -176,5 +179,27 @@ public class RequestHelper
         }
 
         return null;
+    }
+
+    //Async function to cancel a job by id
+    public async Task CancelJobAsync(string id)
+    {
+        try
+        {
+            RestRequest request = new RestRequest($"/api/v2/generate/status/{id}", Method.Delete);
+            request.AddHeader("Content-Type", "application/json");
+
+            RestResponse response = await _client.ExecuteAsync(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                Log.Info($"Cancel request failed with status code {response.StatusCode}");
+            }
+
+        }
+        catch (Exception e)
+        {
+            Log.Error($"{e.Message} | {e.StackTrace}");
+        }
     }
 }

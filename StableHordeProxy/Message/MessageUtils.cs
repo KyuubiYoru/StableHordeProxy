@@ -21,6 +21,28 @@ public static class MessageUtils
 
     public static Message CreateModelMessage(Model model)
     {
+        string triggerstring;
+        string showcase;
+        
+        //Use the first string in model.Trigger as the triggerstring
+        if (model.Trigger.Length > 0)
+        {
+            triggerstring = model.Trigger[0];
+        }
+        else
+        {
+            triggerstring = "";
+        }
+        //Use the first string in model.Showcase as the showcase
+        if (model.Showcases.Length > 0)
+        {
+            showcase = model.Showcases[0];
+        }
+        else
+        {
+            showcase = "";
+        }
+
         Message msg = new MessageBuilder("model_update")
             .AddArgument(model.Name)
             .AddArgument(model.Description)
@@ -28,8 +50,8 @@ public static class MessageUtils
             .AddArgument(model.SortIndex.ToString())
             .AddArgument(model.Nsfw.ToString())
             .AddArgument(model.Style)
-            .AddArgument(model.Trigger.ToString() ?? string.Empty)
-            .AddArgument(model.Showcases.ToString() ?? string.Empty)
+            .AddArgument(triggerstring)
+            .AddArgument(showcase)
             .Build();
         return msg;
     }
@@ -42,7 +64,7 @@ public static class MessageUtils
         return msg;
     }
 
-    public static Message CreateJobProgressMessage(Job job)
+    public static Message CreateJobProgressMessage(Job job, string message = "")
     {
         //Calculate progress percentage from job.FinishedImages and job.NumberOfImages
         float progress = job.FinishedImages / (float)job.NumberOfImages * 100;
@@ -52,6 +74,7 @@ public static class MessageUtils
             .AddArgument(job.FinishedImages.ToString())
             .AddArgument(job.Done.ToString())
             .AddArgument(progress.ToString("0.00"))
+            .AddArgument(message)
             .Build();
         return msg;
     }

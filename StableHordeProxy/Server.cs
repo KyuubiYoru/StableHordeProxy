@@ -122,7 +122,7 @@ public class Server
         Job job = new Job(this, client, _config, args);
         _waitingJobs.Add(job);
 
-        Log.Info("Job started");
+        Log.Info("Job started with prompt: " + job.GenerationData.ApiData["prompt"]);
     }
 
     public void DebugCommand(IWebSocketConnection client)
@@ -141,12 +141,24 @@ public class Server
     {
         if (_modelClients.Contains(client))
         {
-            _modelClients.Remove(client);
+            return;
         }
-        else
+
+        _modelClients.Add(client);
+        //Send all available models to client client.Send(MessageUtils.CreateModelMessage(model.Value).Serialize()) in an async task with an delay of 100ms between each message
+        Task.Run(async () =>
         {
-            _modelClients.Add(client);
-        }
+            foreach (Model model in _modelHelper.AvailableModels.Values)
+            {
+                if (!client.IsAvailable) return;
+                
+                string message = MessageUtils.CreateModelMessage(model).Serialize();
+                //Log.Info(message);
+                await client.Send(message);
+                await Task.Delay(10);
+            }
+        });
+
     }
 
     private void ModelHelperOnOnModelUpdate(object sender, Model model)

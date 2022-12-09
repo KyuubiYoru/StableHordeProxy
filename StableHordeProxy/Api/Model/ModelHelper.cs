@@ -101,6 +101,8 @@ public class ModelHelper
             var availableModels = new Dictionary<string, Model>();
             foreach ((string name, int availableWorker) model in availableModelsList)
             {
+                //Ingore "stable_diffusion_inpainting" model
+                if (model.name == "stable_diffusion_inpainting") continue;
                 if (Models.ContainsKey(model.name))
                 {
                     Models[model.name].AvailableWorkers = model.availableWorker;
