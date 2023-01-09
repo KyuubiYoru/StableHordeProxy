@@ -72,10 +72,9 @@ public class Job
         }
         
         //seed is a string and needs to be between 0 and 4294967295 and set it to "" if it is not an int
-
-        if (!UInt32.TryParse(GenerationData.ApiData["seed"], out uint _))
+        if (GenerationData.ImageParams["seed"] != "" && !UInt32.TryParse(GenerationData.ImageParams["seed"], out uint _))
         {
-            GenerationData.ApiData["seed"] = "";
+            GenerationData.ImageParams["seed"] = "";
         }
 
         SendJobProgress();
@@ -192,6 +191,12 @@ public class Job
             try
             {
                 string? id = await _server.RequestHelper.StartImageJobAsync(this).WaitAsync(CancellationToken.None);
+                
+                if (GenerationData.ImageParams["seed"] != "")
+                {
+                    GenerationData.ImageParams["seed"] = (UInt32.Parse(GenerationData.ImageParams["seed"]) + 1).ToString();
+                }
+                
                 if (id != null)
                 {
                     RunningIds.Add(id);

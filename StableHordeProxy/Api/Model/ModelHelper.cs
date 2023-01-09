@@ -19,22 +19,14 @@ public class ModelHelper
         _server = server;
         UpdateModels().WaitAsync(CancellationToken.None);
         UpdateAvailableModels().WaitAsync(CancellationToken.None);
-
-        //Run UpdateAvailableModels() every 1 minutes and UpdateModels() every 15 minutes
+        
         Task.Run(async () =>
         {
             while (true)
             {
-                await Task.Delay(1 * 60 * 1000);
-                await UpdateAvailableModels();
-            }
-        });
-        Task.Run(async () =>
-        {
-            while (true)
-            {
-                await Task.Delay(15 * 60 * 1000);
+                await Task.Delay(2 * 60 * 1000);
                 await UpdateModels();
+                await UpdateAvailableModels();
             }
         });
     }
@@ -45,7 +37,7 @@ public class ModelHelper
     public async Task UpdateModels()
     {
         JObject jsonObject;
-        if (File.Exists("db.json") && File.GetLastWriteTime("db.json").AddHours(1) > DateTime.Now)
+        if (File.Exists("db.json") && File.GetLastWriteTime("db.json").AddMinutes(1) > DateTime.Now)
         {
             //Only update if Models Dictionary is empty
             if (Models.Count != 0) return;

@@ -47,7 +47,7 @@ public class HttpConfig
 {
     public string Address { get; set; } = "+";
     public int Port { get; set; } = 8282;
-    public string Url { get; set; } = "http://sh.kyuubi.biz/";
+    public string Url { get; set; } = "http://localhost/"; //The URL where the images are hosted from, change this to your domain name or IP address
     public string DataPath { get; set; } = "data/";
 }
 

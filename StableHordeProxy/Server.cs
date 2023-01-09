@@ -139,12 +139,12 @@ public class Server
 
     public void ModelCommand(IWebSocketConnection client)
     {
-        if (_modelClients.Contains(client))
+        if (!_modelClients.Contains(client))
         {
-            return;
+            _modelClients.Add(client);
         }
 
-        _modelClients.Add(client);
+        
         //Send all available models to client client.Send(MessageUtils.CreateModelMessage(model.Value).Serialize()) in an async task with an delay of 100ms between each message
         Task.Run(async () =>
         {
