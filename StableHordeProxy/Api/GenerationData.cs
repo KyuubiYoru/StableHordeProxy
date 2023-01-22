@@ -101,6 +101,8 @@ public class GenerationData
     {
         ApiData.Add("prompt", "A cute fox nousr robot");
         ApiData.Add("nsfw", true);
+        ApiData.Add("r2", false);
+        ApiData.Add("shared", true);
         ApiData.Add("censor_nsfw", false);
         ApiData.Add("trusted_workers", false);
         ApiData.Add("models", "Midjourney Diffusion");
